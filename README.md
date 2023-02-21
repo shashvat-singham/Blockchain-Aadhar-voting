@@ -120,12 +120,7 @@ https://github.com/sanattaori/techdot/blob/cecabc1917965ed7404e4c444b7572c97e10d
 The Aadhaar based voting system is developed to overcome the flaws of EVM system. So directly EVM will be replaced by touch screen interface having the great
 user interface and high security.
 
-## Authors
 
-* **Sanat Taori**
-* **Akshay Motghare**
-* **Mandar Patil** 
-* **Aniket Narkhede**
 
 ## License
 
