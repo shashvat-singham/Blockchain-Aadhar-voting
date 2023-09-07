@@ -108,12 +108,12 @@ https://github.com/sanattaori/techdot/blob/cecabc1917965ed7404e4c444b7572c97e10d
  * button disabling and automatic logout is to prevent multiple voting by single candidate. 
 
 ### Screenshots
-* ![](https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/1.PNG)<br>
-* ![](https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/2.PNG)<br>
-* ![](https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/3.PNG)<br>
-* ![](https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/4.PNG)<br>
-* ![](https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/5.PNG)<br>
-* ![](https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/gan.PNG)<br>
+* (https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/1.PNG)<br>
+* (https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/2.PNG)<br>
+* (https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/3.PNG)<br>
+* (https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/4.PNG)<br>
+* (https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/5.PNG)<br>
+* (https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/gan.PNG)<br>
 
 ## Deployment
 
