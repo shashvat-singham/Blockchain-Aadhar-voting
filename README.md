@@ -108,11 +108,12 @@ https://github.com/sanattaori/techdot/blob/cecabc1917965ed7404e4c444b7572c97e10d
  * button disabling and automatic logout is to prevent multiple voting by single candidate. 
 
 ### Screenshots
-* ![]([screenshot/2.PNG)
-* ![](https://raw.githubusercontent.com/sanattaori/techdot/master/screenshot/3.PNG)
-* ![](https://raw.githubusercontent.com/sanattaori/techdot/master/screenshot/4.PNG)
-* ![](https://raw.githubusercontent.com/sanattaori/techdot/master/screenshot/5.PNG)
-* ![](https://raw.githubusercontent.com/sanattaori/techdot/master/screenshot/gan.PNG)
+* ![](screenshot/1.png)
+* ![](screenshot/2.png)
+* ![](screenshot/3.png)
+* ![](screenshot/4.png)
+* ![](screenshot/5.png)
+* ![](screenshot/6.png)
 
 ## Deployment
 
