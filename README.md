@@ -108,7 +108,7 @@ https://github.com/sanattaori/techdot/blob/cecabc1917965ed7404e4c444b7572c97e10d
  * button disabling and automatic logout is to prevent multiple voting by single candidate. 
 
 ### Screenshots
-* ![](screenshot/1.png)
+* ![](https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/1.PNG)
 * ![](screenshot/2.png)
 * ![](screenshot/3.png)
 * ![](screenshot/4.png)
