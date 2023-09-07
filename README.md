@@ -109,11 +109,11 @@ https://github.com/sanattaori/techdot/blob/cecabc1917965ed7404e4c444b7572c97e10d
 
 ### Screenshots
 * ![](https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/1.PNG)
-* ![](screenshot/2.png)
-* ![](screenshot/3.png)
-* ![](screenshot/4.png)
-* ![](screenshot/5.png)
-* ![](screenshot/6.png)
+* ![](https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/2.PNG)
+* ![](https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/3.PNG)
+* ![](https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/4.PNG)
+* ![](https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/.PNG)
+* ![](https://github.com/shashvat-singham/Blockchain-Aadhar-voting/blob/main/screenshot/gan.PNG)
 
 ## Deployment
 
