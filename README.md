@@ -96,9 +96,7 @@ copy address of first account
 ```
 $ ganache-cli
 ```
-Paste this adderess to 
-ui/js/clist.js line 17
-https://github.com/sanattaori/techdot/blob/cecabc1917965ed7404e4c444b7572c97e10dcf9/ui/js/clist.js#L17
+
 
 
 ### Purpose of test
