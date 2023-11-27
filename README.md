@@ -1,5 +1,5 @@
 # Aadhaar Voting
-Aadhaar Based voting system using blockchain technology
+Aadhaar Based voting system using blockchain technology. You can view this project deployed at https://voteblocks.netlify.app/
 
 
 ## Description
