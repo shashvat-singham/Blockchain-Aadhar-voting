@@ -16,7 +16,7 @@ Aadhaar Based voting system using blockchain technology. You can view this proje
 
 Clone Project
 ```
-git clone git@github.com:sanattaori/techdot.git && cd techdot
+git clone git@https://github.com/shashvat-singham/Blockchain-Aadhar-voting.git
 ```
 Install Dependencies
 ```
