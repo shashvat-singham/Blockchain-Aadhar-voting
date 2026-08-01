@@ -12,6 +12,8 @@ node_modules/
 data/voters.json
 data/*.csv
 !data/voters.sample.csv
+# Roll staged for a deployment's VOTER_REGISTRY_JSON — still contains phones.
+.vercel-registry.json
 
 # Hardhat
 artifacts/
@@ -41,3 +43,9 @@ Thumbs.db
 *.log
 npm-debug.log*
 yarn-error.log*
+
+# Vercel CLI appends `.vercel` and `.env*` on link. Keep both, but restore the
+# exception for the committed template, which `.env*` would otherwise swallow.
+.vercel
+.env*
+!.env.example
