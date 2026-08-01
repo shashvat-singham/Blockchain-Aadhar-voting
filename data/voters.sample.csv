@@ -1,0 +1,11 @@
+# Plaintext electoral roll -- INPUT ONLY. Never commit a real one.
+#
+# Feed this to `npm run voters:hash` to produce data/voters.json, which stores
+# only HMAC digests of the Aadhaar numbers. Delete the plaintext afterwards.
+#
+# aadhaar,ward,phone,eligible
+300000000000,AKOLA,+919876543210,true
+738253790005,BHANDARA,+919876543211,true
+411111111111,AKOLA,+919876543212,true
+522222222222,BHANDARA,+919876543213,true
+999999999999,AKOLA,+919876543214,false

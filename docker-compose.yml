@@ -1,0 +1,111 @@
+# Full local stack: a blockchain, a deployed election, and the app.
+#
+#   docker compose up --build     →  http://localhost:3000
+#   docker compose down -v        →  tear down, including the chain state
+#
+# This file is for development and demos. It uses Hardhat's well-known test
+# keys and placeholder secrets, both of which are public knowledge and worth
+# nothing. For a real deployment see the Vercel section of the README, or run
+# only the `app` service against a real RPC with real secrets.
+
+name: aadhaar-voting
+
+services:
+  # --------------------------------------------------------------- chain ----
+  chain:
+    build:
+      context: .
+      target: toolchain
+    command: npx hardhat node --hostname 0.0.0.0
+    ports:
+      - '8545:8545'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -fsS -X POST -H 'Content-Type: application/json'
+          --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+          http://localhost:8545 || exit 1
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  # ----------------------------------------------------------- bootstrap ----
+  # Runs once: deploys the contract, opens polling, hashes the sample roll,
+  # then exits. The app waits for it to finish successfully.
+  bootstrap:
+    build:
+      context: .
+      target: toolchain
+    depends_on:
+      chain:
+        condition: service_healthy
+    environment:
+      LOCALHOST_RPC_URL: http://chain:8545
+      # Hardhat test account #1. Public, worthless, never reuse it.
+      RELAYER_PRIVATE_KEY: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d'
+      AADHAAR_PEPPER: ${AADHAAR_PEPPER:-docker-demo-aadhaar-pepper-0123456789abcd}
+      STATE_DIR: /state
+    volumes:
+      - state:/state
+    command: bash docker/bootstrap.sh
+    restart: 'no'
+
+  # ----------------------------------------------------------------- app ----
+  app:
+    build:
+      context: .
+      target: runtime
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+    ports:
+      - '3000:3000'
+    environment:
+      # Development mode on purpose: this demo has no SMS gateway, and the
+      # `console` OTP transport is deliberately refused when NODE_ENV=production
+      # so nobody ships an election whose codes only exist in a log file. A real
+      # deployment sets NODE_ENV=production (the image default) together with
+      # OTP_TRANSPORT=twilio or msg91.
+      NODE_ENV: development
+      PORT: '3000'
+
+      RPC_URL: http://chain:8545
+      # Reachable from the host, so the results page can point a visitor at the
+      # same chain the server is reading.
+      PUBLIC_RPC_URL: http://localhost:8545
+      CHAIN_ID: '31337'
+
+      # Hardhat test account #1 — the relayer that pays gas so voters need no
+      # wallet. In production this is the one key the app requires.
+      RELAYER_PRIVATE_KEY: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d'
+      RELAYER_MIN_BALANCE_WEI: '10000000000000000'
+
+      # Demo secrets. Override them in a .env file beside this one, or export
+      # them, before showing this to anyone.
+      SESSION_SECRET: ${SESSION_SECRET:-docker-demo-session-secret-0123456789abc}
+      NULLIFIER_SECRET: ${NULLIFIER_SECRET:-docker-demo-nullifier-secret-0123456789}
+      AADHAAR_PEPPER: ${AADHAAR_PEPPER:-docker-demo-aadhaar-pepper-0123456789abcd}
+
+      # The roll is written by bootstrap into the shared volume, never baked
+      # into the image.
+      VOTER_REGISTRY_PATH: /state/voters.json
+
+      # No SMS gateway in a demo: the code is logged and shown in the UI.
+      OTP_TRANSPORT: console
+      DEV_ECHO_OTP: 'true'
+      RESULTS_VISIBILITY: live
+      TX_CONFIRMATIONS: '1'
+    volumes:
+      - state:/state:ro
+    # CONTRACT_ADDRESS is only known after bootstrap has deployed, so it is
+    # sourced at start rather than baked into the environment above.
+    command:
+      - sh
+      - -c
+      - 'set -a; . /state/contract.env; set +a; exec node server.js'
+    restart: unless-stopped
+
+volumes:
+  state:
