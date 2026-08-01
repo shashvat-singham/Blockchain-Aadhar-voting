@@ -1,18 +1,43 @@
-# Build and Release Folders
-bin-debug/
-bin-release/
-[Oo]bj/
-[Bb]in/
+# Dependencies
+node_modules/
 
-# Other files and folders
-.settings/
+# Environment and secrets — never commit these
+.env
+.env.*
+!.env.example
 
-# Executables
-*.swf
-*.air
-*.ipa
-*.apk
+# Electoral roll. Both files are PII: the CSV holds raw Aadhaar numbers, and the
+# generated JSON still holds mobile numbers. Supply the roll through
+# VOTER_REGISTRY_JSON in production.
+data/voters.json
+data/*.csv
+!data/voters.sample.csv
 
-# Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
-# should NOT be excluded as they contain compiler settings and other important
-# information for Eclipse / Flash Builder.
+# Hardhat
+artifacts/
+cache/
+typechain-types/
+coverage/
+coverage.json
+
+# Deployment records are per-environment; keep the ones you want deliberately
+deployments/localhost.json
+
+# Vercel
+.vercel/
+.vercel_build_output/
+
+# Editors, tooling and OS
+.vscode/
+.idea/
+.claude/
+.cursor/
+.aider*
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*

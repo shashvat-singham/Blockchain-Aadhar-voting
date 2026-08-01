@@ -1,153 +1,342 @@
 # Aadhaar Voting
- You can view this project deployed at https://voteblocks.netlify.app/. VoteBlocks  is a decentralised web 3.0 based online voting system which allow voters to vote securely and anonymously while maintaining privacy and transparency.
 
-## :desktop_computer: Project Framework
+A blockchain-recorded voting system that **needs no wallet**. Voters authenticate with
+their Aadhaar number and a one-time code sent to their registered mobile — no MetaMask,
+no browser extension, no seed phrase, no cryptocurrency, no gas.
 
-* __Frontend__ : React JS
-* __BlockChain__ : Polygon Mumbai Testnet
-* __Contract/Backend__ : Solidity
-* __IPFS__ : Infura
-* __Contract Management__ : Truffle
+Ballots are still written to a public blockchain, and one-vote-per-voter is still enforced
+by the smart contract rather than by an application server.
 
-## :electron: Project Features
+```
+Browser (static, no wallet)  →  Vercel serverless API  →  Relayer wallet  →  Smart contract
+     Aadhaar + OTP                identity + policy        signs, pays gas     tally + nullifiers
+```
 
-* Role Based Authorization
-* Separate Dashboards for Voter/Admin
-* TOTP 2FA with Google Authenticator
-* Unique Password 🔑 Generation for addresses
-* Unique Setup Key Generator for addresses for connection to Google Authenticator
-* QR Code for scanning key directly into Google Authenticator 
-* Decentralised file storage using Infura
-* Communication with blockchain via Metamask
+---
 
-## :ballot_box_with_check: Admin Login Test Data <br>
-* Import account 0x2AAD4FFDefCAB7D7Dd0B8D500a8f70c1A38513e4 into Metamask with private key
+## Why there is no MetaMask
+
+The previous version asked every voter to install MetaMask, import an account, and hold
+funds to pay gas. That is a hard barrier for a public election, and it leaks voter
+identity into a wallet address.
+
+This version moves signing to the server. A single **relayer** account — funded and
+operated by the election authority — submits every ballot and pays every network fee.
+The voter's browser only ever talks to this app's own origin.
+
+Removing the wallet does not weaken the guarantee that matters. The contract stores a
+**nullifier** for each voter (`HMAC(secret, aadhaar)`) and rejects a second ballot for
+one that is already spent. A compromised or buggy relayer still cannot make anyone vote
+twice, and cannot change a recorded tally.
+
+| Concern | Where it is enforced |
+|---|---|
+| One vote per voter | **Smart contract** (`nullifierUsed` mapping) |
+| Voter is on the electoral roll | Backend, against the hashed roll |
+| Voter is in the right constituency | **Smart contract** (`WardMismatch`) |
+| Polls are open | **Smart contract** (phase + time window) |
+| Tally is append-only and public | **Blockchain** |
+| Identity verification (OTP) | Backend + SMS provider |
+
+---
+
+## What is in the box
+
+```
+contracts/AadhaarVoting.sol   Ballot contract: roles, phases, nullifiers, ward scoping
+test/                          30 contract tests
+api/                           Serverless functions (the relayer lives here)
+  _lib/                        chain, crypto, sessions, rate limiting, SMS, registry
+public/                        Static frontend — no wallet code anywhere in it
+server.js                      Standalone server for Docker / VM / local dev
+config/election.json           Wards, candidates, party symbols
+data/                          Hashed electoral roll
+scripts/                       deploy, seed, roll hashing, smoke test
+Dockerfile                     runtime + toolchain targets
+docker-compose.yml             Chain + contract + app, one command
+```
+
+The same `api/` handlers run in all three environments. On Vercel each file becomes
+its own function; under Docker or `npm run dev`, `server.js` routes to them using the
+identical file-system convention.
+
+### Endpoints
+
+| Route | Purpose |
+|---|---|
+| `POST /api/auth/request-otp` | Check the roll, text a one-time code |
+| `POST /api/auth/verify-otp` | Exchange the code for a short-lived session |
+| `GET /api/ballot` | The authenticated voter's constituency ballot |
+| `POST /api/vote` | Cast the ballot on-chain (relayer pays gas) |
+| `GET /api/results` | Public tallies and turnout |
+| `GET /api/config` | Contract address, chain id, ABI — for independent verification |
+| `GET /api/health` | Readiness: config, chain, relayer balance, roll |
+
+---
+
+## Run it with Docker
+
+The fastest way to see the whole thing working. One command brings up a blockchain,
+deploys and opens the election, hashes the sample roll, and starts the app:
+
 ```bash
-e439ae6593376e149f0421f7ae7b3c777cc1da5e7d47923766f2e0f85030e723
+docker compose up --build
 ```
-* Browse to https://voteblocks.netlify.app/adminApp/adminLogin or localhost:port/adminApp/adminLogin <br> Note : THIS PAGE IS ACCESSIBLE ONLY IF WALLET ADDRESS IS GIVEN ADMIN RIGHTS
-* Aadhar ID : 111111111111
-* Login Key
-```text
-d&0at5mh]25cD#Jf{edc8-0adf73W07@eK4df0fd4bF=HW17580d8d.<N05Haob3ix=Ka1v&%a
-```
-* Google Authenticator Setup Key
+
+Then open <http://localhost:3000> and vote as `300000000000` or `738253790005`. The
+one-time code is printed in the `app` service logs and shown in the UI, since the demo
+has no SMS gateway.
+
 ```bash
-GNLTAN3FJM2GIZRQ
+docker compose logs -f app     # watch requests and OTP codes
+docker compose down -v         # tear down, including the chain state
 ```
 
+Three services: `chain` (a local Hardhat node), `bootstrap` (deploys, seeds, hashes the
+roll, then exits), and `app`. The app waits for `bootstrap` to finish, so the stack is
+never half-initialised.
 
-## Description
+### Building just the app image
 
-* The authority must login first with the provided session ID.
-* The voter can now begin the process of voting with proper authentication through OTP(one time password) on the respective linked mobile number.
-* If the voter is valid then the system will check for for the voters age and the address to which he can give vote.
-* the voting pallete will be opned with  candidate names,their parties and logos.
-* Now the voter can give his vote by clicking vote button.
-* one voter can give his vote only once,i.e after one time voting buttons are disabled and the vote is automatically loged out.
-* Same process continiues for many more votters irrespective of their voting wards.
+The `runtime` target is the deployable image: production dependencies only, no compiler,
+no Hardhat, non-root user, `tini` as PID 1 so the graceful shutdown in `server.js` runs.
 
-### Installing and Running Project
+```bash
+docker build --target runtime -t aadhaar-voting .
 
-Clone Project
+docker run -p 3000:3000 \
+  -e RPC_URL=https://rpc-amoy.polygon.technology \
+  -e CHAIN_ID=80002 \
+  -e CONTRACT_ADDRESS=0x... \
+  -e RELAYER_PRIVATE_KEY=0x... \
+  -e SESSION_SECRET=... -e NULLIFIER_SECRET=... -e AADHAAR_PEPPER=... \
+  -e OTP_TRANSPORT=twilio -e TWILIO_ACCOUNT_SID=... \
+  -v "$PWD/data/voters.json:/run/secrets/voters.json:ro" \
+  -e VOTER_REGISTRY_PATH=/run/secrets/voters.json \
+  aadhaar-voting
 ```
-git clone git@https://github.com/shashvat-singham/Blockchain-Aadhar-voting.git
-```
-Install Dependencies
-```
+
+The electoral roll is never baked into an image — mount it, or pass
+`VOTER_REGISTRY_JSON`. The container's `HEALTHCHECK` uses `/api/health`, which stays
+unhealthy until the chain, the relayer and the roll are all usable, so an orchestrator
+holds traffic back rather than routing it into failing ballots.
+
+> The compose stack runs with `NODE_ENV=development` on purpose: it has no SMS gateway,
+> and the `console` OTP transport is deliberately refused in production so nobody ships
+> an election whose codes only exist in a log file. A real deployment uses the image
+> default (`NODE_ENV=production`) with `OTP_TRANSPORT=twilio` or `msg91`.
+
+---
+
+## Run it locally
+
+Nothing but Node 20+ is required — no Docker, no Vercel account, no testnet funds.
+
+```bash
 npm install
 ```
-Running Project
-```
-node index.js
-```
-If dependency problem occurs delete package.json, Run
-```
-npm init
-```
-Again Install dependencies and run project.
 
+**Terminal 1 — a local chain**
 
-### Running Project
-Step 1 - Setting up Environment
-Instead of developing the app against the live Ethereum blockchain, we have used an in-memory blockchain (think of it as a blockchain simulator) called testrpc.
-
-```
-npm install ethereumjs-testrpc web3
+```bash
+npm run chain
 ```
 
-Step 2 - Creating Voting Smart Contract
+**Terminal 2 — configure, deploy, seed**
 
-```
-npm install solc
-```
-
-Replace your aadhaar no and phone number for running project at https://github.com/sanattaori/techdot/blob/7814403250f8b042992c6d437d9f9db8f98f3729/ui/js/app.js#L39
-
-Step 3 - Testing in node console
-
-Not required just for testing in node console-
-After writing our smart contract, we'll use Web3js to deploy our app and interact with it
-```
-$ node
-> Web3 = require('web3')
-> web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
-Then ensure Web3js is initalized and can query all accounts on the blockchain
-
-> web3.eth.accounts
-Lastly, compile the contract by loading the code from Voting.sol in to a string variable and compiling it
-
-> code = fs.readFileSync('Voting.sol').toString()
-> solc = require('solc')
-> compiledCode = solc.compile(code)
-```
-testrpc creates 10 test accounts to play with automatically. These accounts come preloaded with 100 (fake) ethers.
-
-Deploy the contract!
-
-dCode.contracts[‘:Voting’].bytecode: bytecode which will be deployed to the blockchain.
-compiledCode.contracts[‘:Voting’].interface: interface of the contract (called abi) which tells the contract user what methods are available in the contract.
-```
-> abiDefinition = JSON.parse(compiledCode.contracts[':Voting'].interface)
-> VotingContract = web3.eth.contract(abiDefinition)
-> byteCode = compiledCode.contracts[':Voting'].bytecode
->deployedContract = VotingContract.new(['Sanat','Aniket','Mandar','Akshay'],{data: byteCode, from: web3.eth.accounts[0], gas: 4700000})
-> deployedContract.address
-> contractInstance = VotingContract.at(deployedContract.address)
-deployedContract.address. When you have to interact with your contract, you need this deployed address and abi definition we talked about earlier.
-```
-Step 4 - Interacting with the Contract via the Nodejs Console
-```
-> contractInstance.totalVotesFor.call('Sanat').toLocaleString()
-'2'
+```bash
+cp .env.example .env.local
 ```
 
-### For TypeError: Cannot read property ':Voting' of undefined :
-Make sure you have ganache-cli
+Fill in `.env.local`. For local work you can use Hardhat's well-known test keys
+(account #0 as owner, account #1 as relayer) and any 32+ character strings for the three
+secrets. Then:
+
+```bash
+npm run deploy:local     # prints CONTRACT_ADDRESS — paste it into .env.local
+npm run seed:local       # publishes the ballot and opens polling
+npm run voters:hash      # turns data/voters.sample.csv into the hashed roll
+npm run dev              # http://localhost:3000
 ```
-sudo npm install ganache-cli -g
+
+`npm run dev` runs `server.js` with module reloading, so API edits apply without a
+restart. `npm start` runs the same file in production mode. `npm run dev:vercel` uses
+`vercel dev` instead, which is the higher-fidelity way to test the Vercel deployment.
+
+With `OTP_TRANSPORT=console` and `DEV_ECHO_OTP=true`, the one-time code is printed to the
+server log and shown in the UI, so you can complete the flow without an SMS gateway.
+
+Demo Aadhaar numbers from the sample roll: `300000000000` (Akola), `738253790005`
+(Bhandara). `999999999999` is on the roll but marked ineligible, for testing that path.
+
+**Verify the whole flow**
+
+```bash
+npm test        # 30 contract tests
+npm run smoke   # 33 end-to-end checks against the running stack
 ```
-copy address of first account
+
+`npm run smoke` drives the real serverless handlers: identity → OTP → ballot → an actual
+on-chain transaction → receipt, and asserts that a second ballot from the same voter is
+refused by the contract.
+
+---
+
+## Deploy to Vercel
+
+### 1. Deploy the contract to a public network
+
+Polygon Amoy is the current Polygon testnet (Mumbai was shut down).
+
+```bash
+export DEPLOYER_PRIVATE_KEY=0x...    # election authority — the contract owner
+export RELAYER_PRIVATE_KEY=0x...     # backend signer — keep this a separate key
+export RPC_URL=https://rpc-amoy.polygon.technology
+
+npm run deploy:amoy
+npm run seed:amoy
 ```
-$ ganache-cli
+
+Fund the **relayer** address with a small amount of the network's native token. Each
+ballot costs roughly 80–120k gas; on Amoy that is a fraction of a cent.
+
+### 2. Import the project
+
+```bash
+npm i -g vercel
+vercel link
 ```
 
+`vercel.json` already sets the output directory, function limits, and security headers.
+There is no build step — the frontend is static and the API is plain Node.
 
+### 3. Set environment variables
 
-### Purpose of test
+In **Project → Settings → Environment Variables**, from `.env.example`:
 
- * The authority login is to ensure security to prevent piracy,harresment and corruption from candidates standing in election.
- * OTP generation is to authenticate the right aadhar card owner.
- * button disabling and automatic logout is to prevent multiple voting by single candidate. 
+| Variable | Notes |
+|---|---|
+| `RPC_URL` | Server-side RPC. May contain a provider key. |
+| `CHAIN_ID` | Checked against the RPC at `/api/health`. |
+| `CONTRACT_ADDRESS` | Printed by the deploy script. |
+| `RELAYER_PRIVATE_KEY` | **The only key the app needs at runtime.** |
+| `PUBLIC_RPC_URL` | Keyless endpoint handed to the browser for verification. |
+| `EXPLORER_TX_URL` | e.g. `https://amoy.polygonscan.com/tx` |
+| `SESSION_SECRET` | Encrypts session tokens. |
+| `NULLIFIER_SECRET` | Derives on-chain voter ids. **Never rotate mid-election.** |
+| `AADHAAR_PEPPER` | Peppers the roll lookup. |
+| `OTP_TRANSPORT` | `twilio` or `msg91`. `console` is refused in production. |
+| `VOTER_REGISTRY_JSON` | The hashed roll, as one JSON string. |
+| `UPSTASH_REDIS_REST_URL` / `_TOKEN` | Global rate limits. Strongly recommended. |
 
+Generate each secret with:
 
-## Deployment
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
 
-The Aadhaar based voting system is developed to overcome the flaws of EVM system. So directly EVM will be replaced by touch screen interface having the great
-user interface and high security.
+Do **not** set `DEPLOYER_PRIVATE_KEY` in Vercel. The owner key is only needed by the
+deploy and seed scripts; keeping it off the server means a compromised deployment cannot
+close the election, rewrite the ballot, or transfer ownership.
 
+### 4. Ship and check
 
+```bash
+vercel deploy --prod
+curl https://<your-project>.vercel.app/api/health
+```
+
+`/api/health` returns `503` with a list of specific problems until everything is right —
+missing variables, wrong chain id, an unauthorised relayer, an unfunded relayer, or a
+missing roll.
+
+---
+
+## The electoral roll
+
+The roll is never stored in plaintext. `npm run voters:hash` converts a CSV into digests:
+
+```
+aadhaar,ward,phone,eligible
+300000000000,AKOLA,+919876543210,true
+```
+
+becomes `HMAC(AADHAAR_PEPPER, aadhaar) → { ward, phone, eligible }`.
+
+Aadhaar numbers are only 12 digits, so a plain hash would be exhaustively searchable —
+the pepper is what makes the digests useless to anyone who steals the file alone. The
+output still contains mobile numbers, so treat it as PII: it is gitignored, and in
+production it belongs in `VOTER_REGISTRY_JSON` rather than in the repository.
+
+---
+
+## Running an election
+
+```js
+// From the owner account, via Hardhat console or a script:
+await voting.addCandidate(name, party, symbolUri, ethers.encodeBytes32String('AKOLA'));
+await voting.openVoting(0, closesAtUnixSeconds);  // 0 = open now
+await voting.setCandidateActive(candidateId, false);  // handle a withdrawal
+await voting.setPaused(true);   // emergency stop; ballots already cast are kept
+await voting.closeVoting();     // freeze the tally permanently
+```
+
+Candidates are frozen once polling opens. Closing is irreversible.
+
+By default `RESULTS_VISIBILITY=after-close` withholds per-candidate counts until polling
+closes, because a visible running total steers voters who have not been yet. Turnout is
+always published. Set `RESULTS_VISIBILITY=live` for demos.
+
+---
+
+## Security notes
+
+**What this system provides**
+
+- One ballot per voter, enforced by the contract, not by the backend.
+- An append-only public tally that no operator can silently edit.
+- Encrypted (JWE) session tokens — a captured token reveals no Aadhaar number.
+- Two-step ownership transfer, a relayer kill switch, and an emergency pause.
+- Rate limiting on every authentication and voting path.
+- Aadhaar numbers never written to the chain, never stored in plaintext.
+
+**What it does not provide, stated plainly**
+
+- **Ballot secrecy against the operator.** `VoteCast` links a nullifier to a candidate.
+  Whoever holds `NULLIFIER_SECRET` can correlate a voter to their choice. Real secret
+  ballots need a zero-knowledge scheme (e.g. Semaphore); that is out of scope here.
+- **Aadhaar verification.** This checks a number against a roll you supply. It does not
+  talk to UIDAI, and it is not a substitute for their authentication APIs.
+- **Coercion resistance.** A voter can be watched while voting.
+- **Relayer trust for liveness.** The relayer cannot forge or double-count votes, but it
+  can refuse to submit one. Authorise several relayers to reduce that risk.
+
+**Operational cautions**
+
+- Never rotate `NULLIFIER_SECRET` during an election — it resets every "already voted"
+  marker and would let people vote again.
+- Keep the owner and relayer keys separate.
+- Configure Upstash. Without it, rate limits apply per serverless instance rather than
+  globally.
+- This is a working reference implementation, not a certified election system. Any real
+  public deployment needs an independent security audit and a legal review.
+
+---
+
+## Testing
+
+```bash
+npm test               # contract tests
+npm run coverage       # coverage report
+npm run lint:sol       # solhint
+npm run smoke          # end-to-end against a running stack
+```
+
+CI runs the contract tests, the linter, an ABI drift check between the contract and
+`api/_lib/abi.js`, and a load check on every serverless function.
+
+---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+MIT — see [LICENSE](LICENSE).

@@ -1,0 +1,55 @@
+{
+  "name": "General Election 2026 (Demo)",
+  "wards": [
+    { "id": "AKOLA", "label": "Akola" },
+    { "id": "BHANDARA", "label": "Bhandara" }
+  ],
+  "candidates": [
+    {
+      "name": "Sanat Taori",
+      "party": "Bharatiya Janata Party",
+      "symbolUri": "/images/bjp.png",
+      "ward": "AKOLA"
+    },
+    {
+      "name": "Aniket Narkhede",
+      "party": "Indian National Congress",
+      "symbolUri": "/images/cong.png",
+      "ward": "AKOLA"
+    },
+    {
+      "name": "Mandar Patil",
+      "party": "Nationalist Congress Party",
+      "symbolUri": "/images/rsc.png",
+      "ward": "AKOLA"
+    },
+    {
+      "name": "Akshay Motghare",
+      "party": "Shiv Sena",
+      "symbolUri": "/images/shiv.png",
+      "ward": "AKOLA"
+    },
+    {
+      "name": "Priya Deshmukh",
+      "party": "Bharatiya Janata Party",
+      "symbolUri": "/images/bjp.png",
+      "ward": "BHANDARA"
+    },
+    {
+      "name": "Rahul Kulkarni",
+      "party": "Indian National Congress",
+      "symbolUri": "/images/cong.png",
+      "ward": "BHANDARA"
+    },
+    {
+      "name": "Meera Joshi",
+      "party": "Nationalist Congress Party",
+      "symbolUri": "/images/rsc.png",
+      "ward": "BHANDARA"
+    }
+  ],
+  "pollingWindow": {
+    "opensAt": 0,
+    "durationHours": 168
+  }
+}

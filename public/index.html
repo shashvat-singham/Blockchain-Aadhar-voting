@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cast your vote · Aadhaar Voting</title>
+    <meta
+      name="description"
+      content="Verify your identity with Aadhaar and cast a blockchain-recorded vote. No wallet, no browser extension, no cryptocurrency required."
+    />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/images/e-voting-logo.png" />
+    <link rel="stylesheet" href="/css/app.css" />
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a class="brand" href="/">
+          <img src="/images/e-voting-logo.png" alt="" />
+          <span class="brand__text">
+            <span class="brand__title">Aadhaar Voting</span>
+            <span class="brand__subtitle" id="election-name">Election Commission of India</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <a href="/" aria-current="page">Vote</a>
+          <a href="/results.html">Results</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page" id="main">
+      <div id="banner"></div>
+
+      <!-- Step 1 ---------------------------------------------------------- -->
+      <section class="card" id="step-identity" aria-labelledby="identity-heading">
+        <div class="card__header">
+          <h1 id="identity-heading">Verify your identity</h1>
+          <p class="card__hint">
+            Enter the Aadhaar number on the electoral roll. We will text a one-time code to your
+            registered mobile number.
+          </p>
+        </div>
+
+        <div id="identity-message" hidden></div>
+
+        <form id="identity-form" novalidate>
+          <div class="field">
+            <label class="field__label" for="aadhaar">Aadhaar number</label>
+            <input
+              class="input"
+              id="aadhaar"
+              name="aadhaar"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              maxlength="14"
+              placeholder="0000 0000 0000"
+              required
+              aria-describedby="aadhaar-help"
+            />
+            <p class="field__help" id="aadhaar-help">
+              12 digits. Your number is never stored or written to the blockchain — only a
+              one-way cryptographic digest of it is.
+            </p>
+          </div>
+
+          <button class="button button--primary button--block" type="submit" id="send-code">
+            Send verification code
+          </button>
+        </form>
+
+        <hr class="divider" />
+
+        <p class="muted">
+          <strong>No wallet needed.</strong> You do not need MetaMask, a crypto wallet, or any
+          funds. Your ballot is written to the blockchain by the Election Commission's relayer,
+          which pays the network fee on your behalf.
+        </p>
+      </section>
+
+      <!-- Step 2 ---------------------------------------------------------- -->
+      <section class="card" id="step-otp" hidden aria-labelledby="otp-heading">
+        <div class="card__header">
+          <h1 id="otp-heading">Enter your code</h1>
+          <p class="card__hint">
+            We sent a <span id="otp-length">6</span>-digit code to <strong id="phone-hint">your mobile</strong>.
+            It expires in <span id="otp-expiry">5</span> minutes.
+          </p>
+        </div>
+
+        <div id="otp-message" hidden></div>
+
+        <form id="otp-form" novalidate>
+          <div class="field">
+            <label class="field__label" for="otp">Verification code</label>
+            <input
+              class="input input--code"
+              id="otp"
+              name="otp"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="8"
+              placeholder="000000"
+              required
+            />
+          </div>
+
+          <div class="button-row">
+            <button class="button button--primary" type="submit" id="verify-code">Verify and continue</button>
+            <button class="button button--ghost" type="button" id="restart-identity">Use a different number</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Step 3 ---------------------------------------------------------- -->
+      <section class="card" id="step-ballot" hidden aria-labelledby="ballot-heading">
+        <div class="card__header">
+          <h1 id="ballot-heading">Your ballot</h1>
+          <p class="card__hint">
+            Constituency: <strong id="ward-label">—</strong>. Select one candidate, then confirm.
+            <strong>Your vote cannot be changed once submitted.</strong>
+          </p>
+        </div>
+
+        <div id="ballot-message" hidden></div>
+
+        <form id="ballot-form">
+          <fieldset class="ballot" id="ballot-options">
+            <legend class="sr-only">Candidates in your constituency</legend>
+          </fieldset>
+
+          <div class="button-row">
+            <button class="button button--primary" type="submit" id="cast-vote" disabled>Cast my vote</button>
+            <button class="button button--ghost" type="button" id="abandon">Cancel</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Step 4 ---------------------------------------------------------- -->
+      <section class="card" id="step-receipt" hidden aria-labelledby="receipt-heading">
+        <div class="card__header">
+          <span class="badge badge--ok"><span class="badge__dot"></span> Recorded on-chain</span>
+          <h1 id="receipt-heading">Your vote has been recorded</h1>
+          <p class="card__hint">
+            Your ballot is now part of an append-only public ledger. Keep this receipt — anyone can
+            use it to confirm the transaction exists, and nobody can alter or remove it.
+          </p>
+        </div>
+
+        <dl class="kv">
+          <dt>Transaction</dt>
+          <dd id="receipt-tx">—</dd>
+          <dt>Block</dt>
+          <dd id="receipt-block">—</dd>
+          <dt>Confirmations</dt>
+          <dd id="receipt-confirmations">—</dd>
+        </dl>
+
+        <hr class="divider" />
+
+        <div class="button-row">
+          <button class="button button--ghost" type="button" id="copy-tx">Copy transaction hash</button>
+          <a class="button button--ghost" id="explorer-link" href="#" target="_blank" rel="noopener noreferrer" hidden>
+            View on block explorer
+          </a>
+          <a class="button button--primary" href="/results.html">See results</a>
+        </div>
+
+        <p class="muted" style="margin-top: 1.1rem">
+          The receipt identifies the transaction, not you. Your Aadhaar number was never sent to the
+          blockchain.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="site-footer__inner">
+        <span>Aadhaar Voting — a blockchain-backed ballot that needs no wallet.</span>
+        <span><a href="/api/health">Service status</a></span>
+      </div>
+    </footer>
+
+    <script type="module" src="/js/vote.js"></script>
+  </body>
+</html>

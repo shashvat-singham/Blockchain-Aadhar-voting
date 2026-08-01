@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Results · Aadhaar Voting</title>
+    <meta
+      name="description"
+      content="Live turnout and results read directly from the election smart contract. Independently verifiable by anyone, without a wallet."
+    />
+    <link rel="icon" href="/images/e-voting-logo.png" />
+    <link rel="stylesheet" href="/css/app.css" />
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a class="brand" href="/">
+          <img src="/images/e-voting-logo.png" alt="" />
+          <span class="brand__text">
+            <span class="brand__title">Aadhaar Voting</span>
+            <span class="brand__subtitle" id="election-name">Election Commission of India</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Primary">
+          <a href="/">Vote</a>
+          <a href="/results.html" aria-current="page">Results</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="card__header" style="margin-bottom: 1.5rem">
+        <span class="badge badge--neutral" id="phase-badge"><span class="badge__dot"></span> Loading…</span>
+        <h1>Results</h1>
+        <p class="card__hint">
+          Every figure below is read from the election smart contract, not from a database.
+        </p>
+      </div>
+
+      <div id="message" hidden></div>
+
+      <div class="stat-row" id="stats" hidden>
+        <div class="stat">
+          <div class="stat__label">Ballots cast</div>
+          <div class="stat__value" id="stat-total">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label">Constituencies</div>
+          <div class="stat__value" id="stat-wards">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label">Polling closes</div>
+          <div class="stat__value" id="stat-closes" style="font-size: 1rem">—</div>
+        </div>
+      </div>
+
+      <div id="wards">
+        <div class="card">
+          <div class="skeleton" style="width: 40%; margin-bottom: 1rem"></div>
+          <div class="skeleton" style="width: 100%; height: 3rem"></div>
+        </div>
+      </div>
+
+      <section class="card" id="verification" hidden aria-labelledby="verify-heading">
+        <div class="card__header">
+          <h2 id="verify-heading">Verify this yourself</h2>
+          <p class="card__hint">
+            You do not have to trust this page. The tallies live in a public smart contract and
+            anyone can read them straight from the chain — no wallet, no extension, no account.
+          </p>
+        </div>
+
+        <dl class="kv">
+          <dt>Contract</dt>
+          <dd id="verify-address">—</dd>
+          <dt>Chain ID</dt>
+          <dd id="verify-chain">—</dd>
+          <dt>Public RPC</dt>
+          <dd id="verify-rpc">—</dd>
+        </dl>
+
+        <div class="button-row" style="margin-top: 1.2rem">
+          <button class="button button--ghost" type="button" id="copy-address">Copy contract address</button>
+          <a class="button button--ghost" id="verify-explorer" href="#" target="_blank" rel="noopener noreferrer" hidden>
+            Open in block explorer
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="site-footer__inner">
+        <span>Figures refresh automatically while polling is open.</span>
+        <span><a href="/api/results">Raw JSON</a> · <a href="/api/health">Service status</a></span>
+      </div>
+    </footer>
+
+    <script type="module" src="/js/results.js"></script>
+  </body>
+</html>
