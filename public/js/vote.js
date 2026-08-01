@@ -30,15 +30,32 @@ function goToStep(name) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-/** Maps an API failure onto the step where the voter can actually act on it. */
+/**
+ * Maps an API failure onto the step where the voter can actually act on it.
+ *
+ * Three distinct situations, because calling all of them "something went
+ * wrong" is both alarming and untrue:
+ *
+ *   not running  no election exists yet -- nothing is broken
+ *   cannot vote  a rule was applied (already voted, polls closed)
+ *   error        something genuinely failed
+ */
 function reportError(container, error) {
-  const isTerminal = ['ALREADY_VOTED', 'VOTING_ENDED', 'NOT_LIVE', 'VOTING_NOT_STARTED'].includes(error.code);
+  const NOT_RUNNING = ['NOT_CONFIGURED', 'UNAVAILABLE', 'VOTING_PAUSED'];
+  const CANNOT_VOTE = ['ALREADY_VOTED', 'VOTING_ENDED', 'NOT_LIVE', 'VOTING_NOT_STARTED', 'WARD_MISMATCH'];
 
-  showMessage(container, {
-    kind: isTerminal ? 'warn' : 'error',
-    title: isTerminal ? 'Cannot continue' : 'Something went wrong',
-    text: error.message,
-  });
+  let kind = 'error';
+  let title = 'Something went wrong';
+
+  if (NOT_RUNNING.includes(error.code)) {
+    kind = 'info';
+    title = 'No election is running yet';
+  } else if (CANNOT_VOTE.includes(error.code)) {
+    kind = 'warn';
+    title = 'Cannot continue';
+  }
+
+  showMessage(container, { kind, title, text: error.message });
 
   if (error.code === 'ALREADY_VOTED') session.clear();
 }
