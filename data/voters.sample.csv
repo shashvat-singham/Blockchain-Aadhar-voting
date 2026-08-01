@@ -4,6 +4,7 @@
 # only HMAC digests of the Aadhaar numbers. Delete the plaintext afterwards.
 #
 # aadhaar,ward,phone,eligible
+123445677890,AKOLA,+919876543219,true
 300000000000,AKOLA,+919876543210,true
 738253790005,BHANDARA,+919876543211,true
 411111111111,AKOLA,+919876543212,true

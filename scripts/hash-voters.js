@@ -18,7 +18,11 @@ const crypto = require('node:crypto');
  * which is why AADHAAR_PEPPER must live in a secret store, not in the repo.
  */
 
-const AADHAAR_PATTERN = /^[2-9]\d{11}$/;
+// 12 digits. The UIDAI convention that real numbers never start with 0 or 1 is
+// reported as a warning rather than enforced, so synthetic numbers can be used
+// for testing and training rolls. See normaliseAadhaar in api/_lib/crypto.js.
+const AADHAAR_PATTERN = /^\d{12}$/;
+const SYNTHETIC_PATTERN = /^[01]/;
 const E164_PATTERN = /^\+[1-9]\d{7,14}$/;
 
 function registryKey(pepper, aadhaar) {
@@ -71,14 +75,19 @@ function main() {
 
   const voters = {};
   const errors = [];
+  const warnings = [];
   const seen = new Map();
 
   for (const row of rows) {
     const where = `${inputPath}:${row.lineNumber}`;
 
     if (!AADHAAR_PATTERN.test(row.aadhaar || '')) {
-      errors.push(`${where}: "${row.aadhaar}" is not a valid 12-digit Aadhaar number`);
+      errors.push(`${where}: "${row.aadhaar}" is not 12 digits`);
       continue;
+    }
+    if (SYNTHETIC_PATTERN.test(row.aadhaar)) {
+      // Accepted, but worth flagging: a real roll should not contain these.
+      warnings.push(`${where}: "${row.aadhaar}" starts with 0 or 1, so it is not a real Aadhaar number`);
     }
     if (!wards.has(row.ward)) {
       errors.push(`${where}: ward "${row.ward}" is not declared in config/election.json`);
@@ -121,6 +130,12 @@ function main() {
 
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, `${JSON.stringify(output, null, 2)}\n`);
+
+  if (warnings.length > 0) {
+    console.warn(`${warnings.length} warning(s):`);
+    for (const warning of warnings) console.warn(`  ${warning}`);
+    console.warn('');
+  }
 
   const eligible = Object.values(voters).filter((v) => v.eligible).length;
   console.log(`Wrote ${outputPath}: ${Object.keys(voters).length} voters (${eligible} eligible).`);

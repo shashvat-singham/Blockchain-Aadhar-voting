@@ -68,13 +68,24 @@ function timingSafeEqual(a, b) {
   return crypto.timingSafeEqual(bufferA, bufferB);
 }
 
-/** Aadhaar numbers are 12 digits and never start with 0 or 1. */
+/**
+ * Normalises an Aadhaar number to 12 bare digits.
+ *
+ * Real UIDAI numbers never begin with 0 or 1, but that rule is only used as a
+ * typo hint, not a gate: the electoral roll is the authority on who may vote,
+ * and a number that appears on it is valid by definition. Enforcing the
+ * convention here would make the roll and the validator disagree, and would
+ * reject the synthetic numbers used for testing and training.
+ */
 function normaliseAadhaar(input) {
   if (typeof input !== 'string' && typeof input !== 'number') return null;
   const digits = String(input).replace(/[\s-]/g, '');
-  if (!/^[2-9]\d{11}$/.test(digits)) return null;
+  if (!/^\d{12}$/.test(digits)) return null;
   return digits;
 }
+
+/** True when a number breaks the UIDAI leading-digit convention. */
+const looksSynthetic = (aadhaar) => /^[01]/.test(aadhaar);
 
 /** "+919876543210" -> "+91 ••••• 3210" for display in the OTP screen. */
 function maskPhone(phone) {
@@ -92,5 +103,6 @@ module.exports = {
   otpDigest,
   timingSafeEqual,
   normaliseAadhaar,
+  looksSynthetic,
   maskPhone,
 };
