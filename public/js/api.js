@@ -20,7 +20,13 @@ export class ApiError extends Error {
 
 const TIMEOUT_MS = 30_000;
 
-async function request(path, { method = 'GET', body, token } = {}) {
+/**
+ * @param {object} [options]
+ * @param {number[]} [options.acceptStatuses] Non-2xx statuses to return rather
+ *        than throw. /api/health answers 503 with the diagnosis in the body,
+ *        so for that route the error status is the useful response.
+ */
+async function request(path, { method = 'GET', body, token, acceptStatuses = [] } = {}) {
   const headers = { Accept: 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -56,7 +62,7 @@ async function request(path, { method = 'GET', body, token } = {}) {
     }
   }
 
-  if (!response.ok) {
+  if (!response.ok && !acceptStatuses.includes(response.status)) {
     const error = payload.error || {};
     throw new ApiError(
       response.status,
@@ -71,7 +77,8 @@ async function request(path, { method = 'GET', body, token } = {}) {
 
 export const api = {
   config: () => request('/api/config'),
-  health: () => request('/api/health'),
+  // 503 is a valid, informative answer here — do not treat it as a failure.
+  health: () => request('/api/health', { acceptStatuses: [503] }),
   results: () => request('/api/results'),
 
   requestOtp: (aadhaar) => request('/api/auth/request-otp', { method: 'POST', body: { aadhaar } }),

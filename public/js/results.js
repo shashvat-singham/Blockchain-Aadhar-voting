@@ -171,11 +171,29 @@ async function refresh() {
     }
   } catch (error) {
     $('#wards').innerHTML = '';
+    $('#stats').hidden = true;
+
+    // "Not set up yet" is a legitimate state, not a failure. Showing it in red
+    // as an error implies something is broken when nothing is.
+    const notReady = error.code === 'NOT_CONFIGURED' || error.code === 'UNAVAILABLE';
+
+    const badge = $('#phase-badge');
+    badge.className = notReady ? 'badge badge--neutral' : 'badge badge--danger';
+    badge.innerHTML = `<span class="badge__dot"></span> ${notReady ? 'Not set up' : 'Unavailable'}`;
+
     showMessage('#message', {
-      kind: 'error',
-      title: 'Could not load results',
-      text: error.message,
+      kind: notReady ? 'info' : 'error',
+      title: notReady ? 'No election is running yet' : 'Could not load results',
+      text: notReady
+        ? `${error.message} Results will appear here once the election authority publishes one.`
+        : error.message,
     });
+
+    // Nothing will change until an operator acts, so stop polling.
+    if (notReady && timer) {
+      clearInterval(timer);
+      timer = null;
+    }
   }
 }
 

@@ -112,11 +112,22 @@ function route(handlers) {
         res.setHeader('Retry-After', String(error.details.retryAfterSeconds));
       }
 
+      /**
+       * Errors we raised on purpose carry both a code and a status, and their
+       * message was written to be read by the caller -- "the election is not
+       * set up yet" is far more useful than a generic apology, and reveals
+       * nothing sensitive. Anything else is an unexpected exception (including
+       * Node system errors like ENOTFOUND, which have a `code` but no
+       * `statusCode`) whose message could leak internals, so it stays generic.
+       */
+      const isDeliberate =
+        error instanceof ApiError || (typeof error.code === 'string' && Number.isInteger(error.statusCode));
+
       sendJson(res, statusCode, {
         error: {
           code: error.code || 'INTERNAL_ERROR',
-          message: statusCode >= 500 ? 'Something went wrong. Please try again.' : error.message,
-          details: statusCode >= 500 ? undefined : error.details,
+          message: isDeliberate ? error.message : 'Something went wrong. Please try again.',
+          details: isDeliberate ? error.details : undefined,
           requestId,
         },
       });

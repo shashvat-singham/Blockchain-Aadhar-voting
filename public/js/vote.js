@@ -61,18 +61,37 @@ async function loadConfig() {
  * failing them halfway through the flow.
  */
 async function checkService() {
+  let health;
   try {
-    const health = await api.health();
-    if (!health.canAcceptVotes) throw new ApiError(503, 'DEGRADED', 'Voting is temporarily unavailable.');
-  } catch (error) {
+    // Returns the body on 503 too, so we can read *why* it is degraded.
+    health = await api.health();
+  } catch {
     showMessage('#banner', {
       kind: 'warn',
-      title: 'Voting is temporarily unavailable',
-      text:
-        error.code === 'DEGRADED' || error.status === 503
-          ? 'The election service is not accepting ballots right now. Please tell a polling officer.'
-          : 'We could not confirm the election service is healthy. You can still try to vote.',
+      title: 'Could not check the election service',
+      text: 'We could not confirm the service is healthy. You can still try to vote.',
     });
+    return;
+  }
+
+  if (health.canAcceptVotes) return;
+
+  // Distinguish "no election exists yet" from "the election is having trouble".
+  // Only the second is something a polling officer can help with.
+  const notSetUp = health.checks?.config?.missing?.length > 0;
+
+  showMessage('#banner', {
+    kind: notSetUp ? 'info' : 'warn',
+    title: notSetUp ? 'No election is running yet' : 'Voting is temporarily unavailable',
+    text: notSetUp
+      ? 'No ballot has been published to the blockchain, so there is nothing to vote on yet.'
+      : 'The election service is not accepting ballots right now. Please tell a polling officer.',
+  });
+
+  // Nothing to vote on: do not invite an Aadhaar number that cannot be used.
+  if (notSetUp) {
+    $('#send-code').disabled = true;
+    $('#aadhaar').disabled = true;
   }
 }
 

@@ -145,12 +145,20 @@ function configReport() {
   return { ok: missing.length === 0, missing, warnings };
 }
 
-/** Throws a 503-shaped error listing everything that is unset. */
+/**
+ * Throws a 503-shaped error when the service cannot talk to an election.
+ *
+ * The message is written for whoever is looking at the page, not for a log:
+ * a visitor should learn that the election is not open yet, while the operator
+ * gets the precise list of unset variables from `details` and /api/health.
+ */
 function assertConfigured() {
   const report = configReport();
   if (report.ok) return;
 
-  const error = new Error(`Server is not configured. Missing: ${report.missing.join(', ')}`);
+  const error = new Error(
+    'This election has not been set up yet. No ballot has been published to the blockchain.'
+  );
   error.statusCode = 503;
   error.code = 'NOT_CONFIGURED';
   error.details = { missing: report.missing };
