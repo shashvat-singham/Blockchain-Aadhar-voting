@@ -40,6 +40,43 @@ twice, and cannot change a recorded tally.
 
 ---
 
+## Who pays the gas
+
+The voter never does, in any configuration. Beyond that you have three options,
+selected with `GAS_PRICE_WEI`.
+
+| Setup | `GAS_PRICE_WEI` | Real cost | Trade-off |
+|---|---|---|---|
+| **Zero-fee chain** — private Besu/Geth/Quorum, or the bundled dev chain | `0` | **Nothing, ever** | You run the validators, so the ledger is only as independent as your operators |
+| **Public testnet** — Polygon Amoy, Sepolia | unset | Nothing real; faucet tokens are free | Public and verifiable, but testnet tokens are worthless, so it is not suitable for a binding election |
+| **Public mainnet** — Polygon | unset | ~₹0.05–0.5 per ballot, paid by the relayer | Strongest independence; the operator carries the cost |
+
+Being straight about it: **"public blockchain" and "literally zero fee" cannot both
+be fully true.** Gas is the mechanism a public chain uses to stop spam. What the
+zero-fee option gives you is a real, append-only, independently readable ledger with
+the fee set to zero — at the price of you operating the validators.
+
+To run genuinely free, point the app at a chain started with a zero minimum gas
+price and set `GAS_PRICE_WEI=0`. Ballots are then submitted as legacy transactions
+priced at zero: the relayer's balance never moves, so it needs no funding and cannot
+run dry mid-election.
+
+```bash
+# Geth
+geth --miner.gasprice 0 --rpc.txfeecap 0 ...
+# Besu
+besu --min-gas-price=0 ...
+```
+
+`npm run smoke` asserts this rather than assuming it — it reads the relayer balance
+before and after a ballot and fails if a zero-fee chain charged anything. Measured on
+the bundled chain: **128,659 gas used, total fee 0 wei, balance unchanged.**
+
+`npm run chain` and `docker compose up` are both zero-fee already, so the default
+local and demo experience costs nothing.
+
+---
+
 ## What is in the box
 
 ```
@@ -220,6 +257,7 @@ In **Project → Settings → Environment Variables**, from `.env.example`:
 | `CHAIN_ID` | Checked against the RPC at `/api/health`. |
 | `CONTRACT_ADDRESS` | Printed by the deploy script. |
 | `RELAYER_PRIVATE_KEY` | **The only key the app needs at runtime.** |
+| `GAS_PRICE_WEI` | Set to `0` on a zero-fee chain; leave unset on a public one. |
 | `PUBLIC_RPC_URL` | Keyless endpoint handed to the browser for verification. |
 | `EXPLORER_TX_URL` | e.g. `https://amoy.polygonscan.com/tx` |
 | `SESSION_SECRET` | Encrypts session tokens. |

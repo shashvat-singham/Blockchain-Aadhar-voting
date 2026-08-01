@@ -156,6 +156,22 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const MAX_SEND_ATTEMPTS = 3;
 
+/** True when the chain charges nothing, so ballots are free to submit. */
+const isGasFree = () => env.gasPriceWei !== undefined && BigInt(env.gasPriceWei) === 0n;
+
+/**
+ * Fee overrides for a ballot transaction.
+ *
+ * With GAS_PRICE_WEI set we send a legacy (type-0) transaction at exactly that
+ * price. On a zero-fee chain that means the ballot costs literally nothing --
+ * the relayer's balance does not move, so it never needs funding and can never
+ * run dry mid-election. Left unset, the node quotes the market rate as usual.
+ */
+function feeOverrides() {
+  if (env.gasPriceWei === undefined) return {};
+  return { gasPrice: BigInt(env.gasPriceWei) };
+}
+
 /**
  * Submits one ballot, paying gas from the relayer account.
  *
@@ -180,7 +196,7 @@ async function sendVote({ nullifier, candidateId, ward }) {
 
   let gasLimit;
   try {
-    const estimate = await contract.castVote.estimateGas(...args);
+    const estimate = await contract.castVote.estimateGas(...args, feeOverrides());
     // 25% headroom: the ballot may land in a block where another vote has
     // already touched the same storage slots.
     gasLimit = (estimate * 125n) / 100n;
@@ -193,7 +209,7 @@ async function sendVote({ nullifier, candidateId, ward }) {
     try {
       // Re-read the nonce each attempt: a concurrent instance may have taken it.
       const nonce = await provider().getTransactionCount(relayerAddress(), 'pending');
-      const tx = await contract.castVote(...args, { gasLimit, nonce });
+      const tx = await contract.castVote(...args, { gasLimit, nonce, ...feeOverrides() });
 
       const receipt = await tx.wait(env.confirmations, env.txTimeoutMs);
       if (!receipt) throw new Error('Transaction receipt was not returned');
@@ -292,18 +308,24 @@ async function relayerStatus() {
     provider().getNetwork(),
   ]);
 
+  const gasFree = isGasFree();
   const minimum = BigInt(env.relayerMinBalanceWei);
+
   return {
     address,
     authorised,
     balanceWei: balance.toString(),
     balanceEther: ethers.formatEther(balance),
-    funded: balance >= minimum,
+    // On a zero-fee chain a balance of 0 is perfectly healthy: ballots cost
+    // nothing, so there is nothing to run out of.
+    funded: gasFree || balance >= minimum,
+    gasFree,
     chainId: Number(network.chainId),
   };
 }
 
 module.exports = {
+  isGasFree,
   provider,
   readContract,
   writeContract,

@@ -82,6 +82,10 @@ services:
       RELAYER_PRIVATE_KEY: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d'
       RELAYER_MIN_BALANCE_WEI: '10000000000000000'
 
+      # The bundled chain runs at gasPrice 0, so a ballot costs nothing at all:
+      # not the voter, not the operator. The relayer's balance never moves.
+      GAS_PRICE_WEI: '0'
+
       # Demo secrets. Override them in a .env file beside this one, or export
       # them, before showing this to anyone.
       SESSION_SECRET: ${SESSION_SECRET:-docker-demo-session-secret-0123456789abc}

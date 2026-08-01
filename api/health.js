@@ -65,6 +65,9 @@ async function get(req, res) {
         authorised: relayer.authorised,
         funded: relayer.funded,
         balance: relayer.balanceEther,
+        // On a zero-fee chain there is no funding requirement at all.
+        gasFree: relayer.gasFree,
+        note: relayer.gasFree ? 'Chain charges no gas: ballots are free to submit.' : undefined,
       };
 
       if (env.chainId && relayer.chainId !== Number(env.chainId)) {
@@ -76,6 +79,11 @@ async function get(req, res) {
       }
       if (!relayer.funded) {
         problems.push('relayer balance is below the minimum needed to pay for ballots');
+      }
+      if (relayer.gasFree && Number(env.chainId) === 137) {
+        // Guard against pointing a zero-gas config at a chain that will
+        // certainly reject the transaction.
+        problems.push('GAS_PRICE_WEI=0 is set but this is Polygon mainnet, which charges gas');
       }
     } catch (error) {
       checks.chain = { ok: false, error: error.message };

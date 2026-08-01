@@ -202,14 +202,37 @@ async function main() {
 
   const candidateId = ballotResult.body.candidates[0].id;
 
-  section('Casting the vote (relayer pays gas — no wallet involved)');
+  section('Casting the vote (no wallet involved)');
   const before = await call(results);
   const votesBefore = before.body?.turnout?.totalVotes ?? 0;
+
+  // Relayer balance before the ballot, so we can prove what it actually cost.
+  const healthBefore = await call(health);
+  const gasFree = healthBefore.body?.checks?.relayer?.gasFree === true;
+  const balanceBefore = healthBefore.body?.checks?.relayer?.balance;
 
   const voteResult = await call(vote, { method: 'POST', body: { candidateId }, token: sessionToken });
   check('vote is recorded', voteResult.status === 200, voteResult.body);
   check('receipt carries a real transaction hash', /^0x[0-9a-f]{64}$/i.test(voteResult.body?.receipt?.txHash || ''));
   check('receipt carries a block number', Number.isInteger(voteResult.body?.receipt?.blockNumber));
+
+  const healthAfter = await call(health);
+  const balanceAfter = healthAfter.body?.checks?.relayer?.balance;
+
+  if (gasFree) {
+    // The whole point of a zero-fee chain: nobody paid anything for this vote.
+    check('gas-free chain: the ballot cost the relayer nothing', balanceBefore === balanceAfter, {
+      before: balanceBefore,
+      after: balanceAfter,
+    });
+    console.log(`        relayer balance unchanged at ${balanceAfter}`);
+  } else {
+    check('sponsored gas: the relayer paid, not the voter', balanceBefore !== balanceAfter, {
+      before: balanceBefore,
+      after: balanceAfter,
+    });
+    console.log(`        relayer paid: ${balanceBefore} -> ${balanceAfter}`);
+  }
 
   section('Double-vote prevention (enforced on-chain)');
   const secondVote = await call(vote, { method: 'POST', body: { candidateId }, token: sessionToken });

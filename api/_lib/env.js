@@ -47,6 +47,13 @@ const env = {
   txTimeoutMs: int('TX_TIMEOUT_MS', 60_000),
   /** Warn when the relayer can no longer reliably pay for ballots. */
   relayerMinBalanceWei: str('RELAYER_MIN_BALANCE_WEI', '10000000000000000'), // 0.01
+  /**
+   * Explicit gas price in wei. Set to "0" on a zero-fee chain (a private
+   * Besu/Geth network, or the bundled dev chain) so ballots cost nothing at
+   * all -- neither the voter nor the operator pays. Leave unset on a public
+   * network to let the node quote the market rate.
+   */
+  gasPriceWei: str('GAS_PRICE_WEI'),
 
   // ---- Secrets --------------------------------------------------------
   sessionSecret: str('SESSION_SECRET'),
