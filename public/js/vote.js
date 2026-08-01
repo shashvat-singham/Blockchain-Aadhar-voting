@@ -88,11 +88,10 @@ async function checkService() {
       : 'The election service is not accepting ballots right now. Please tell a polling officer.',
   });
 
-  // Nothing to vote on: do not invite an Aadhaar number that cannot be used.
-  if (notSetUp) {
-    $('#send-code').disabled = true;
-    $('#aadhaar').disabled = true;
-  }
+  // The form deliberately stays usable. Disabling it made the page look
+  // broken -- keystrokes vanished with no explanation next to the field --
+  // and a health check is a snapshot, so a stale one must never be what
+  // stops a real voter. Submitting returns a precise reason instead.
 }
 
 /* --------------------------------------------------------- step 1: identity */
